@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# $Id: netsane.sh,v 1.37 2004/08/24 14:54:43 godot Exp $
-#
 # netsane (1.1) - a load-balancing, multipath iproute2 script.
 #
 # This script is heavily based upon the advanced routing
@@ -9,7 +7,7 @@
 # Christoph Simon's Nano-Howto available at:
 # http://www.ssi.bg/~ja/nano.txt
 #
-# Copyright (c) 2003 Roger Gregory <godot@mindspring.com>
+# Copyright (c) 2003 Roger Gregory <rtgregory@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
