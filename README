@@ -1,0 +1,125 @@
+# $Id: README,v 1.29 2004/03/19 15:09:42 godot Exp $
+
+netsane is a set of scripts to easily configure and 
+maintain route load balancing (of sorts) between 
+disparate networks, easily define null routes, and 
+mark specific traffic to flow out specific gateways.
+
+Balancing requires iproute2 and specific kernel requirements:
+
+ 	CONFIG_IP_ADVANCED_ROUTER
+  	CONFIG_IP_MULTIPLE_TABLES
+   	CONFIG_IP_ROUTE_MULTIPATH
+
+Load balancing WILL NOT WORK WITHOUT THESE KERNEL ADDITIONS. Netsane
+has been tested with iproute2-ss010824.
+
+netsane v1 works for -2- gateways.
+
+-----------------
+
+FEATURES:	
+
+* Use of multipath gateways (Failed lines *should* be detected transparently)
+* Can detect/workaround 'dead' gateway iproute2 bug
+* Ability to add blackholed destinations
+* Ability to tie specific destinations to specific routes
+* Ability to mark outgoing packets to use specific routes
+
+-----------------
+
+BUGS: 		
+
+There are reports of the iproute2 tools being oddly broken in 2.4.x, depending
+on a wide variety of factors (GCC build, iptools version, etc).
+		
+Netsane *DOES* try a basic workaround for this problem (which is
+marking one of the gateways as 'dead') by adding the first gateway
+twice (which seems to solve things on my test workstation).
+
+It looks something like this:
+
+$ip r sh
+
+default
+        nexthop via x.x.x.x  dev eth0 weight 1 dead
+		nexthop via x.x.x.x  dev eth0 weight 1
+		nexthop via y.y.y.y  dev eth1 weight 1 pervasive
+						
+This may not be sufficent in your case, and I have little
+recommendation other than to track down a patch for iproute2 and
+hope for the best. I do -not- experience this problem using
+iproute2-ss010824 and GCC 3.3.1
+
+Of special note is that netsane DOES NOT ASSUME you have patched
+your kernel with the patches available at http://www.ssi.bg/~ja/
+(you may do well to do so). 
+
+-----------------
+
+CAVEATS: 	
+
+Netsane CANNOT provide ANY form of true redundancy nor true failover. It
+simply affords a relatively easy way to configure multipath routing.
+
+As Julian Anastasov notes (the author of a series of patches related
+to routing), Linux 'out of the box' will not detect ARP neighbor failures. 
+Proper detection of upstream failure should be achieved via scripts which 
+adjust the routing table in the event of upstream failure. 
+
+Without such mechanisms, non-local failures will NOT be detected,
+and your system will happily continue to send packets down
+the failed (upstream) route. In other words, while pulling the cable
+from one interface will automagically cause the kernel to use the
+other interface, the standard multipath mechanisms will NOT 
+detect dead upstreams past the local network.
+
+IP Aliases
+
+Netsane does not play nice with 'old style' ip aliases (e.g., eth0:1).
+Partly this is due to the nature of iproute2 (there are other mechanisms
+for adding additional addresses to devices), and that netsane tries to
+set 'sane' defaults for route assignments per *device* (to ensure
+policy routes are tied to specific devices, which are attached to
+specific networks).
+
+-----------------
+
+USAGE:
+
+Here are some suggestions:
+
+Before RUNNING THIS SCRIPT MAKE A COPY OF /etc/iproute2/rt_tables
+The script expects this 'clean' copy as /etc/iproute2/rt_tables_SANE
+
+1)	Configure your network 'normally' - DO NOT add more than one
+	default gateway (i.e., only set one of the interfaces to have
+	a default gateway).
+
+2)	Create a directory for netsane to reside (I like /etc/netsane)
+
+3) 	Edit /etc/netsane/netsane.conf
+
+4)	If you've decided to use something OTHER THAN /etc/netsane,
+	edit netsane.sh (so that it can find netsane.conf)
+
+5)	Update your rc scripts to run /etc/netsane/netsane.sh AFTER ALL
+	OTHER NETWORKING scripts have run. WARNING: many distributions 
+	WILL NOT RUN scripts linked within if-up.d/ unless you strip
+	the suffix (i.e., use ln -s /etc/netsane/netsane.sh netsane)
+
+6)	If you have networks you wish to blackhole, add them to
+	/etc/netsane/blackhole
+
+-----------------
+
+RUNTIME OPTIONS
+
+Netsane accepts the following options:
+
+        -f|stop    ............... (flush) remove multiroutes
+        init|start ............... (init) start netsane
+        restart    ............... (restart) restart netsane
+        -dip1      ............... (drop ip1gw) remove IP1 gateway
+        -dip2      ............... (drop ip2gw) remove IP2 gateway
+        -h|help    ............... (help) print usage
